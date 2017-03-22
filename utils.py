@@ -25,6 +25,31 @@ def load_image(path):
     return resized_img
 
 
+def crop_to_coords(im, xStart, xEnd, yStart, yEnd):
+    """
+        crop image to the coordinates given and resize to [224, 224, 3] for training
+    :return: the cropped image of shape [224, 224, 3]
+    """
+    max_y = im.shape[1]
+    cropped = im[xStart:xEnd+1, max_y - yStart:max_y - yEnd+1]
+    # we crop image from center
+    #short_edge = min(cropped.shape[:2])
+    #yy = int((cropped.shape[0] - short_edge) / 2)
+    #xx = int((cropped.shape[1] - short_edge) / 2)
+    #crop_img = cropped[yy: yy + short_edge, xx: xx + short_edge]
+    # resize to 224, 224
+    resized_img = skimage.transform.resize(cropped, (224, 224), order=2)
+    return resized_img
+
+# [height, width, depth]
+def load_image_without_resize(path):
+    # load image
+    img = skimage.io.imread(path, plugin='matplotlib')
+    img = img / 255.0
+    assert (0 <= img).all() and (img <= 1.0).all()
+    return img
+
+
 # returns the top1 string
 def print_prob(prob, file_path):
     synset = [l.strip() for l in open(file_path).readlines()]
