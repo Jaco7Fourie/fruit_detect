@@ -30,15 +30,14 @@ def crop_to_coords(im, xStart, xEnd, yStart, yEnd):
         crop image to the coordinates given and resize to [224, 224, 3] for training
     :return: the cropped image of shape [224, 224, 3]
     """
-    max_y = im.shape[1]
-    cropped = im[xStart:xEnd+1, max_y - yStart:max_y - yEnd+1]
+    cropped = im[yStart:yEnd+1, xStart:xEnd+1]
     # we crop image from center
     #short_edge = min(cropped.shape[:2])
     #yy = int((cropped.shape[0] - short_edge) / 2)
     #xx = int((cropped.shape[1] - short_edge) / 2)
     #crop_img = cropped[yy: yy + short_edge, xx: xx + short_edge]
     # resize to 224, 224
-    resized_img = skimage.transform.resize(cropped, (224, 224), order=2)
+    resized_img = skimage.transform.resize(cropped, (224, 224), order=3)    # use bi-cubic since bi-qudratic seems to be broken
     return resized_img
 
 # [height, width, depth]
