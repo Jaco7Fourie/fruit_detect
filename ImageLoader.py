@@ -15,9 +15,9 @@ class ImageLoader:
         rootPath = os.path.split(path)[0]
         try:
             self.logFile = open(path, 'r')
-            print('IO: {} opened'.format(path))
+            print('\nIO: {} opened'.format(path))
         except:
-            print('IO: {} could NOT be opened!'.format(path))
+            print('\nIO: {} could NOT be opened!'.format(path))
         file_lines = self.logFile.readlines()
 
         # first loop to find the total matches
@@ -81,6 +81,6 @@ class ImageLoader:
         imsave(path, stitched_samples)
 
 if __name__ == "__main__":
-    imLoader = ImageLoader(r'D:/projects/SFF Crop load management/TestData/1/train_apple.txt')
+    imLoader = ImageLoader(r'D:/projects/GYA/Test_data_1/train_grape.txt')
     imLoader.closeFile()
-    imLoader.constructSampleImage('./apple_matches.png',10,12)
+    imLoader.constructSampleImage('./grape_matches.png',10,10)
