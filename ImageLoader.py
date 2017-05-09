@@ -11,7 +11,8 @@ class ImageLoader:
     Loads images for training from.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, image_size=(224, 224, 3)):
+        self.image_size = image_size
         rootPath = os.path.split(path)[0]
         try:
             self.logFile = open(path, 'r')
@@ -26,7 +27,7 @@ class ImageLoader:
             entries = line.split(' ')
             totalMatches += int(entries[1])
 
-        self.train_set = np.empty((totalMatches, 224, 224, 3))
+        self.train_set = np.empty((totalMatches, *self.image_size))
         counter = 0
         # now loop through all lines to add all matches to training tensor
         print('Processing {:d} lines containing {:d} matches...'.format(len(file_lines), totalMatches))
@@ -41,7 +42,7 @@ class ImageLoader:
             for i in range(matches):
                 im = ut.load_image_without_resize(imPath)
                 indices = [int(entries[i*6 + 2]), int(entries[i*6 + 4]), int(entries[i*6 + 3]), int(entries[i*6 + 5])]
-                cropped = ut.crop_to_coords(im, *indices)
+                cropped = ut.crop_to_coords(im, *indices, (self.image_size[0],self.image_size[1]))
                 self.train_set[counter] = cropped
                 counter += 1
 
@@ -81,6 +82,6 @@ class ImageLoader:
         imsave(path, stitched_samples)
 
 if __name__ == "__main__":
-    imLoader = ImageLoader(r'D:/projects/GYA/Test_data_1/train_grape.txt')
+    imLoader = ImageLoader(r"D:\projects\GYA\Set_1\train_grapes1.txt")
     imLoader.closeFile()
-    imLoader.constructSampleImage('./grape_matches.png',10,10)
+    imLoader.constructSampleImage('./grape_matches_set1.png',15,15)

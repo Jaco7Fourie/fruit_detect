@@ -7,9 +7,9 @@ import numpy as np
 # synset = [l.strip() for l in open('synset.txt').readlines()]
 
 
-# returns image of shape [224, 224, 3]
+# returns image of desired shape
 # [height, width, depth]
-def load_image(path):
+def load_image(path, new_size):
     # load image
     img = skimage.io.imread(path)
     img = img / 255.0
@@ -20,15 +20,15 @@ def load_image(path):
     yy = int((img.shape[0] - short_edge) / 2)
     xx = int((img.shape[1] - short_edge) / 2)
     crop_img = img[yy: yy + short_edge, xx: xx + short_edge]
-    # resize to 224, 224
-    resized_img = skimage.transform.resize(crop_img, (224, 224))
+    # resize to new_size
+    resized_img = skimage.transform.resize(crop_img, new_size)
     return resized_img
 
 
-def crop_to_coords(im, xStart, xEnd, yStart, yEnd):
+def crop_to_coords(im, xStart, xEnd, yStart, yEnd, new_size):
     """
-        crop image to the coordinates given and resize to [224, 224, 3] for training
-    :return: the cropped image of shape [224, 224, 3]
+        crop image to the coordinates given and resize to new_size for training
+    :return: the cropped image of shape new_size
     """
     cropped = im[yStart:yEnd+1, xStart:xEnd+1]
     # we crop image from center
@@ -36,8 +36,8 @@ def crop_to_coords(im, xStart, xEnd, yStart, yEnd):
     #yy = int((cropped.shape[0] - short_edge) / 2)
     #xx = int((cropped.shape[1] - short_edge) / 2)
     #crop_img = cropped[yy: yy + short_edge, xx: xx + short_edge]
-    # resize to 224, 224
-    resized_img = skimage.transform.resize(cropped, (224, 224), order=3)    # use bi-cubic since bi-qudratic seems to be broken
+    # resize to new_size
+    resized_img = skimage.transform.resize(cropped, new_size, order=3, mode='reflect')    # use bi-cubic since bi-qudratic seems to be broken
     return resized_img
 
 # [height, width, depth]
