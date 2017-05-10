@@ -27,7 +27,7 @@ class ImageLoader:
             entries = line.split(' ')
             totalMatches += int(entries[1])
 
-        self.train_set = np.empty((totalMatches, *self.image_size))
+        self.train_set = np.empty((totalMatches, self.image_size[0], self.image_size[1], self.image_size[2]))
         counter = 0
         # now loop through all lines to add all matches to training tensor
         print('Processing {:d} lines containing {:d} matches...'.format(len(file_lines), totalMatches))
@@ -42,7 +42,7 @@ class ImageLoader:
             for i in range(matches):
                 im = ut.load_image_without_resize(imPath)
                 indices = [int(entries[i*6 + 2]), int(entries[i*6 + 4]), int(entries[i*6 + 3]), int(entries[i*6 + 5])]
-                cropped = ut.crop_to_coords(im, *indices, (self.image_size[0],self.image_size[1]))
+                cropped = ut.crop_to_coords(im, *indices, new_size=(self.image_size[0],self.image_size[1]))
                 self.train_set[counter] = cropped
                 counter += 1
 

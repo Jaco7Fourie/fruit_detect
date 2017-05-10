@@ -198,19 +198,19 @@ class fruitCNN:
         batch_counter = 0
         global_counter = 0
         for ii, data_x in enumerate(generator):
-            for imIndex in range(data_x[0].shape[0]):
+            for imIndex in range(len(data_x[1])):
                 im = data_x[0][imIndex]
                 label = data_x[1][imIndex]
                 train_set[global_counter] = im
                 label_set[global_counter] = label[0]
-                if (label > 1):
+                if (label[0] > 1):
                     print('aah!!!')
                 global_counter += 1
             batch_counter += 1
             if (batch_counter == steps):
                 break
 
-        return (train_set, label_set)
+        return (train_set[:global_counter], label_set[:global_counter])
 
     # noinspection PyTypeChecker
     def save_bottlebeck_features(self, train_data, test_data):
@@ -371,8 +371,8 @@ def testImageDataFromDataArray(data, labels, stopat=50):
 
 ########################################################################################################################
 if __name__ == "__main__":
-    batch_size = 64
-    batches_to_generate = 100
+    batch_size = 32
+    batches_to_generate = 50
     epochs = 15
     training = True
     model = ClassifierModel('VGG16', input_shape=(224,224,3))
@@ -397,7 +397,7 @@ if __name__ == "__main__":
         else:
             train_gen, test_gen = fruitModel.makeTrainTestBatches()
             train_data, train_labels = fruitModel.save_generator_data(train_gen, batches_to_generate)
-            test_data, test_labels = fruitModel.save_generator_data(test_gen, np.floor(batches_to_generate*(1-TRAIN_TEST_SPLIT)))
+            test_data, test_labels = fruitModel.save_generator_data(test_gen, np.floor(np.max((batches_to_generate*(1-TRAIN_TEST_SPLIT),1))))
 
             fruitModel.save_bottlebeck_features(train_data, test_data)
             # save the labels
