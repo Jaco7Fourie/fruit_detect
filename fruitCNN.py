@@ -25,7 +25,7 @@ MODEL_DATA_PATH = r'./output/model_data.npy'
 MODEL_LABELS_PATH = r'./output/model_labels.npy'
 MODEL_BEST_WEIGHTS = r'./weights/checkpoints/weights.{epoch:02d}-{val_acc:.2f}.hdf5'
 TENSORBOARD_PATH = r'./tensorboard'
-MODEL_WEIGHTS_FOR_PREDICTION = r'D:\Source\Python\fruit_detect\weights\vgg16_weights.08-0.97.hdf5'
+MODEL_WEIGHTS_FOR_PREDICTION = r'./weights/InceptionV3_weights.56-0.99.hdf5'
 
 
 class LossHistory(callbacks.Callback):
@@ -75,25 +75,31 @@ class fruitCNN:
             self.data = np.load(open(dataFile, 'rb'))
             self.labels = np.load(open(labelFile, 'rb'))
 
-    def addToDataset(self, path, label, dataFile='', labelFile=''):
+    def addToDataset(self, path, label=None, dataFile='', labelFile=''):
         """
-        adds a set of imge matches to train_data based on a log file of labelled matches
+        adds a set of image matches to train_data based on a log file of labelled matches
         :param path: the path to the matches log
-        :param label: an integer np_array on-hot vector representing the label
+        :param label: an integer np_array representing the label. When not given defaults to the labels given in the log file
         :param dataFile: the path to optionally save the data object to
         :param labelFile: the path to optionally save the label object to
         :return: None
         """
 
-        imLoader = ImageLoader(path)
+        imLoader = ImageLoader(path, image_size=self.img_dims)
         if (self.data.shape[0] == 0):
             self.data = imLoader.train_set
-            entries = self.data.shape[0]
-            self.labels = np.vstack([label] * entries)
+            if (label != None):
+                entries = self.data.shape[0]
+                self.labels = np.vstack([label] * entries)
+            else:
+                self.labels = imLoader.label_set
         else:
             self.data = np.concatenate((self.data, imLoader.train_set), 0)
             entries = imLoader.train_set.shape[0]
-            self.labels = np.concatenate((self.labels, np.vstack([label] * entries)), 0)
+            if (label != None):
+                self.labels = np.concatenate((self.labels, np.vstack([label] * entries)), 0)
+            else:
+                self.labels = np.concatenate((self.labels, imLoader.label_set), 0)
         imLoader.closeFile()
 
         if dataFile != '' and labelFile != '' :
@@ -158,7 +164,7 @@ class fruitCNN:
         model = self.top_model(train_data.shape[1:])
 
         #model.summary()
-        model.compile(optimizer=rmsprop(lr=0.001),
+        model.compile(optimizer=rmsprop(lr=0.0001),
                       loss='binary_crossentropy', metrics=['accuracy'])
 
         #self.sess.run(tf.global_variables_initializer())
@@ -179,10 +185,12 @@ class fruitCNN:
         :return: the model
         """
         model = Sequential()
-        model.add(Flatten(input_shape=shape, name='flatten_01'))
-        model.add(Dense(128, activation='relu', name='dense_relu_01')) # kernel_constraint=maxnorm(4))
-        model.add(Dropout(0.5, name='dropout_01'))
-        model.add(Dense(1, activation='sigmoid', name='dense_sigmoid_03'))
+        #model.add(Flatten(input_shape=shape, name='flatten_01'))
+        #model.add(Dense(128, activation='relu', name='dense_relu_01', kernel_initializer='he_normal'))
+        #model.add(Dropout(0.5, name='dropout_01'))
+        #model.add(Dense(128, activation='relu', name='dense_relu_02', kernel_initializer='he_normal'))
+        #model.add(Dropout(0.5, name='dropout_02'))
+        model.add(Dense(1, activation='sigmoid', input_shape=shape, name='predictions', kernel_initializer='he_normal'))
         return model
 
     def save_generator_data(self, generator, steps):
@@ -203,8 +211,6 @@ class fruitCNN:
                 label = data_x[1][imIndex]
                 train_set[global_counter] = im
                 label_set[global_counter] = label[0]
-                if (label[0] > 1):
-                    print('aah!!!')
                 global_counter += 1
             batch_counter += 1
             if (batch_counter == steps):
@@ -242,7 +248,7 @@ class fruitCNN:
         # 1. first feed images through to bottleneck of the classifier
         # save the features predicted from the training set so we don't have to run the full classifier again
         print('calculating bottleneck features...({0})'.format(image_data.shape[0]))
-        bottleneck_features= self.model.predict(image_data, self.batch_size)
+        bottleneck_features= self.model.keras_model.predict(image_data, self.batch_size)
 
         # 2. Add the top layer
         if not os.path.isfile(MODEL_WEIGHTS_FOR_PREDICTION):
@@ -279,18 +285,21 @@ class fruitCNN:
             print('log_paths and labels length do not match! aborting...')
             return None
 
-        imLoader = ImageLoader(log_paths[0])
+        imLoader = ImageLoader(log_paths[0], image_size=self.img_dims)
         data = imLoader.train_set
         entries = imLoader.train_set.shape[0]
-        data_labels =  np.vstack([labels[0]] * entries)
+        if (labels != None):
+            data_labels =  np.vstack([labels[0]] * entries)
+        else:
+            data_labels = imLoader.label_set
         for idx,path in enumerate(log_paths[1:], start=1):
-            imLoader = ImageLoader(path)
+            imLoader = ImageLoader(path, image_size=self.img_dims)
             data = np.concatenate((data, imLoader.train_set), 0)
             entries = imLoader.train_set.shape[0]
             if (labels != None):
                 data_labels = np.concatenate((data_labels, np.vstack([labels[idx]] * entries)), 0)
             else:
-                data_labels = None
+                data_labels = np.concatenate((data_labels, imLoader.label_set), 0)
 
         # shuffle the data
         p = np.random.permutation(data.shape[0])
@@ -372,18 +381,18 @@ def testImageDataFromDataArray(data, labels, stopat=50):
 ########################################################################################################################
 if __name__ == "__main__":
     batch_size = 32
-    batches_to_generate = 50
-    epochs = 15
-    training = True
-    model = ClassifierModel('VGG16', input_shape=(224,224,3))
+    batches_to_generate = 150
+    epochs = 3500
+    training = False
+    model = ClassifierModel('InceptionV3', input_shape=(299,299,3))
 
     fruitModel = fruitCNN(model, 1, batch_size)
     if (training):
         if os.path.isfile(MODEL_DATA_PATH) and os.path.isfile(MODEL_LABELS_PATH):
             fruitModel.loadDatasetFromFile(MODEL_DATA_PATH,MODEL_LABELS_PATH)
         else:
-            fruitModel.addToDataset(r'D:\projects\GYA\Test_data_1\train_nongrape.txt', np.array([0]))
-            fruitModel.addToDataset(r'D:\projects\GYA\Test_data_1\train_grape.txt', np.array([1]),
+            fruitModel.addToDataset(r'D:\projects\GYA\Set_1\train_grapes1.txt', np.array([1]))
+            fruitModel.addToDataset(r'D:\projects\GYA\Set_1\train_non_grapes.txt', np.array([0]),
                                     MODEL_DATA_PATH,MODEL_LABELS_PATH)
 
 
@@ -396,14 +405,14 @@ if __name__ == "__main__":
             fruitModel.train_top_model(train_labels, test_labels, epochs)
         else:
             train_gen, test_gen = fruitModel.makeTrainTestBatches()
-            train_data, train_labels = fruitModel.save_generator_data(train_gen, batches_to_generate)
             test_data, test_labels = fruitModel.save_generator_data(test_gen, np.floor(np.max((batches_to_generate*(1-TRAIN_TEST_SPLIT),1))))
+            train_data, train_labels = fruitModel.save_generator_data(train_gen, batches_to_generate)
 
             fruitModel.save_bottlebeck_features(train_data, test_data)
             # save the labels
             np.save(open(BOTTLENECK_TRAIN_LABELS_PATH, 'wb'), train_labels)
             np.save(open(BOTTLENECK_TEST_LABELS_PATH, 'wb'), test_labels)
     else:
-        paths = [r"D:\projects\GYA\Test_data_2\train_grapes.txt", r"D:\projects\GYA\Test_data_2\train_non_grapes.txt"]
+        paths = [r"D:\projects\GYA\Test_data_1\train_grape.txt", r"D:\projects\GYA\Test_data_1\train_nongrape.txt"]
         labels = [1,0]
-        fruitModel.evaluate_image_path(paths, labels, images_in_mosaic=[6,6])
+        fruitModel.evaluate_image_path(paths, labels, images_in_mosaic=[15,15])

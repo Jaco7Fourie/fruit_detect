@@ -16,7 +16,7 @@ class ClassifierModel:
         """
         self.input_shape = input_shape
         # use text instead of code to prevent python from building all the models during initialization
-        models_dict = {'InceptionV3': r"InceptionV3(include_top=include_top, weights='imagenet', input_shape=input_shape)",
+        models_dict = {'InceptionV3': r"InceptionV3(include_top=include_top, weights='imagenet', input_shape=input_shape, pooling='avg')",
                        'ResNet50': r"ResNet50(include_top=include_top, weights='imagenet', input_shape=input_shape)",
                        'VGG16': r"VGG16(include_top=include_top, weights='imagenet', input_shape=input_shape)"}
         if model_id in models_dict:

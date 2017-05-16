@@ -2,6 +2,7 @@ import skimage
 import skimage.io
 import skimage.transform
 import numpy as np
+from PIL import ImageFont, ImageDraw, Image
 
 
 # synset = [l.strip() for l in open('synset.txt').readlines()]
@@ -9,6 +10,9 @@ import numpy as np
 
 # returns image of desired shape
 # [height, width, depth]
+
+
+
 def load_image(path, new_size):
     # load image
     img = skimage.io.imread(path)
@@ -24,6 +28,12 @@ def load_image(path, new_size):
     resized_img = skimage.transform.resize(crop_img, new_size)
     return resized_img
 
+def write_string_to_image(string, image, font_size=25):
+    font = ImageFont.truetype("DroidSans.ttf", font_size)
+    pil_im = Image.fromarray(np.uint8(image*255))
+    draw = ImageDraw.Draw(pil_im)
+    draw.text((0, 0), string, (255, 255, 255), font=font)
+    return np.array(pil_im)
 
 def crop_to_coords(im, xStart, xEnd, yStart, yEnd, new_size):
     """
@@ -44,7 +54,8 @@ def crop_to_coords(im, xStart, xEnd, yStart, yEnd, new_size):
 def load_image_without_resize(path):
     # load image
     img = skimage.io.imread(path, plugin='matplotlib')
-    img = img / 255.0
+    if ((img > 1.0).any()):
+        img = img / 255.0
     assert (0 <= img).all() and (img <= 1.0).all()
     return img
 
