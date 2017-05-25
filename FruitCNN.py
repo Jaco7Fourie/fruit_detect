@@ -10,7 +10,7 @@ from keras.constraints import maxnorm
 from keras.models import Sequential
 from keras import callbacks
 from keras.layers import Dropout, Flatten, Dense
-from keras.callbacks import ModelCheckpoint, TensorBoard
+from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.optimizers import rmsprop
 
 
@@ -25,7 +25,7 @@ MODEL_DATA_PATH = r'./output/model_data.npy'
 MODEL_LABELS_PATH = r'./output/model_labels.npy'
 MODEL_BEST_WEIGHTS = r'./weights/checkpoints/weights.{epoch:02d}-{val_acc:.2f}.hdf5'
 TENSORBOARD_PATH = r'./tensorboard'
-MODEL_WEIGHTS_FOR_PREDICTION = r'./weights/InceptionV3_weights.56-0.99.hdf5'
+MODEL_WEIGHTS_FOR_PREDICTION = r'./weights/InceptionV3_grapes_weights.56-0.99'
 
 
 class LossHistory(callbacks.Callback):
@@ -44,7 +44,7 @@ class LossHistory(callbacks.Callback):
                                                                                   str(logs.get('acc'))))
 
 ########################################################################################################################
-class fruitCNN:
+class FruitCNN:
     """
     Loads images for training from.
     """
@@ -62,6 +62,7 @@ class fruitCNN:
         self.classes = classes
         self.data = np.empty((0, self.img_dims[0], self.img_dims[1], 3))
         self.labels = np.empty((0, classes))
+        self.early_stopping = EarlyStopping(monitor='val_loss', min_delta=1e-8, patience=50, verbose=1)
         self.checkpointer_best = ModelCheckpoint(filepath=MODEL_BEST_WEIGHTS, monitor='val_acc',
                                                  verbose=1,save_best_only=True)
         self.tensorboard = TensorBoard(log_dir=TENSORBOARD_PATH, histogram_freq=1,
@@ -173,7 +174,7 @@ class fruitCNN:
         model.fit(train_data, train_labels,
                   epochs=epochs,
                   batch_size=self.batch_size,
-                  callbacks=[self.tensorboard, history, self.checkpointer_best ],
+                  callbacks=[self.tensorboard, history, self.checkpointer_best, self.early_stopping ],
                   validation_data=(validation_data, validation_labels))
 
         model.save_weights(TOPMODEL_WEIGHTS_PATH)
@@ -229,11 +230,11 @@ class fruitCNN:
         # build the classifier network
         #model = applications.VGG16(include_top=False, weights='imagenet')
         # save the features predicted from the training set so we don't have to run the full classifier again
-        bottleneck_features_train = self.model.keras_model.predict(train_data, self.batch_size)
+        bottleneck_features_train = self.model.keras_model.predict(train_data, self.batch_size, verbose=1)
         np.save(open(BOTTLENECK_TRAIN_PATH, 'wb'), bottleneck_features_train)
         print('Bottleneck train set saved to {0}'.format(BOTTLENECK_TRAIN_PATH))
         # save the features predicted from the testing set so we don't have to run the full classifier again
-        bottleneck_features_validation = self.model.keras_model.predict(test_data, self.batch_size)
+        bottleneck_features_validation = self.model.keras_model.predict(test_data, self.batch_size, verbose=1)
         np.save(open(BOTTLENECK_TEST_PATH, 'wb'), bottleneck_features_validation)
         print('Bottleneck test set saved to {0}'.format(BOTTLENECK_TEST_PATH))
 
@@ -246,9 +247,8 @@ class fruitCNN:
         '''
 
         # 1. first feed images through to bottleneck of the classifier
-        # save the features predicted from the training set so we don't have to run the full classifier again
         print('calculating bottleneck features...({0})'.format(image_data.shape[0]))
-        bottleneck_features= self.model.keras_model.predict(image_data, self.batch_size)
+        bottleneck_features= self.model.keras_model.predict(image_data, self.batch_size, verbose=1)
 
         # 2. Add the top layer
         if not os.path.isfile(MODEL_WEIGHTS_FOR_PREDICTION):
@@ -386,13 +386,13 @@ if __name__ == "__main__":
     training = False
     model = ClassifierModel('InceptionV3', input_shape=(299,299,3))
 
-    fruitModel = fruitCNN(model, 1, batch_size)
+    fruitModel = FruitCNN(model, 1, batch_size)
     if (training):
         if os.path.isfile(MODEL_DATA_PATH) and os.path.isfile(MODEL_LABELS_PATH):
             fruitModel.loadDatasetFromFile(MODEL_DATA_PATH,MODEL_LABELS_PATH)
         else:
-            fruitModel.addToDataset(r'D:\projects\GYA\Set_1\train_grapes1.txt', np.array([1]))
-            fruitModel.addToDataset(r'D:\projects\GYA\Set_1\train_non_grapes.txt', np.array([0]),
+            #fruitModel.addToDataset(r'D:\projects\GYA\Set_1\train_grapes1.txt', np.array([1]))
+            fruitModel.addToDataset(r"D:\projects\Apple tree scanner\To label\new_labels.txt", None,
                                     MODEL_DATA_PATH,MODEL_LABELS_PATH)
 
 
@@ -407,7 +407,7 @@ if __name__ == "__main__":
             train_gen, test_gen = fruitModel.makeTrainTestBatches()
             test_data, test_labels = fruitModel.save_generator_data(test_gen, np.floor(np.max((batches_to_generate*(1-TRAIN_TEST_SPLIT),1))))
             train_data, train_labels = fruitModel.save_generator_data(train_gen, batches_to_generate)
-
+            print('saving bottleneck features [train size:{} test size{}]'.format(train_data.shape[0], test_data.shape[0]))
             fruitModel.save_bottlebeck_features(train_data, test_data)
             # save the labels
             np.save(open(BOTTLENECK_TRAIN_LABELS_PATH, 'wb'), train_labels)

@@ -35,6 +35,12 @@ def write_string_to_image(string, image, font_size=25):
     draw.text((0, 0), string, (255, 255, 255), font=font)
     return np.array(pil_im)
 
+def draw_box_to_image(image, rgb_col, coordinates):
+    pil_im = Image.fromarray(np.uint8(image*255))
+    draw = ImageDraw.Draw(pil_im)
+    draw.rectangle(coordinates, outline=rgb_col)
+    return np.array(pil_im)
+
 def crop_to_coords(im, xStart, xEnd, yStart, yEnd, new_size):
     """
         crop image to the coordinates given and resize to new_size for training
