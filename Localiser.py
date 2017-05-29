@@ -108,11 +108,11 @@ def display_grid_scores(imPath, grid_results):
 
 ###################################################################################################################
 if __name__ == "__main__":
-    image_path = r"D:\projects\GYA\Set_2\DSC_0340.jpg"
+    image_path = r"D:\projects\Apple tree scanner\To label\2016_12_14_09_38_50_566_S_3_F_ON_L_ON.png"
     save_path_image = r"./images/localise_result.png"
     save_path_image_map = r"./images/localise_result_map.png"
     save_path_matrix = r"./images/localise_matrix.csv"
-    model_path = r"./weights/InceptionV3_grapes_weights.56-0.99.hdf5"
+    model_path = r"./weights/IncpetionV3_apples_weights_0.99.hdf5"
 
     model = ClassifierModel('InceptionV3', input_shape=(2000, 3000, 3), pooling=None)
     grid = find_matches(model, model_path, image_path, batch_size=32)
